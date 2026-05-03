@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Movie Swipe Club</title>
+  <meta name="description" content="Два пользователя свайпают фильмы и находят совпадение для просмотра." />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: rgba(18, 24, 47, 0.86);
+      --panel-strong: rgba(22, 30, 59, 0.98);
+      --text: #f5f7ff;
+      --muted: #a6b0d4;
+      --accent: #7c8cff;
+      --like: #22c55e;
+      --nope: #ef4444;
+      --border: rgba(255,255,255,0.12);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124, 140, 255, 0.25), transparent 30%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 28%),
+        linear-gradient(180deg, #090d1a 0%, #0b1020 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    .app {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+    header, footer, .panel {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    header {
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 48px; height: 48px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), #c084fc);
+      display: grid; place-items: center; font-size: 22px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+    .stat {
+      min-width: 130px; padding: 12px 14px; border-radius: 18px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    }
+    .stat .label { color: var(--muted); font-size: 12px; display: block; }
+    .stat .value { font-weight: 700; font-size: 17px; margin-top: 4px; }
+    .layout { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+    .sidebar, .stage { min-height: 640px; }
+    .sidebar {
+      padding: 18px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .sidebar h2, .stage h2 { margin: 0; font-size: 18px; }
+    .field { display: grid; gap: 8px; }
+    .field label { color: var(--muted); font-size: 13px; }
+    input, button { font: inherit; }
+    input {
+      width: 100%; padding: 14px 16px; border-radius: 16px;
+      border: 1px solid var(--border); background: rgba(6, 10, 24, 0.72);
+      color: var(--text); outline: none;
+    }
+    input:focus { border-color: rgba(124, 140, 255, 0.7); box-shadow: 0 0 0 3px rgba(124, 140, 255, 0.15); }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      border: 0; border-radius: 16px; padding: 14px 16px; color: white; cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+    .primary { background: linear-gradient(135deg, var(--accent), #6d5efc); }
+    .success { background: linear-gradient(135deg, var(--like), #16a34a); }
+    .danger { background: linear-gradient(135deg, var(--nope), #dc2626); }
+    .ghost { background: rgba(255,255,255,0.07); border: 1px solid var(--border); box-shadow: none; }
+    .info-box {
+      padding: 14px; border-radius: 18px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--muted); line-height: 1.45; font-size: 14px;
+    }
+    .stage {
+      padding: 18px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 14px; overflow: hidden;
+    }
+    .feed { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .deck-area { position: relative; min-height: 510px; display: grid; place-items: center; perspective: 1200px; }
+    .card-stack { position: relative; width: min(100%, 520px); height: 490px; }
+    .card {
+      position: absolute; inset: 0; border-radius: 30px; overflow: hidden;
+      background: radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 30%),
+        linear-gradient(180deg, rgba(8, 12, 24, 0.15), rgba(8, 12, 24, 0.9)), linear-gradient(135deg, #1f2954, #111827);
+      border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 28px 80px rgba(0,0,0,0.45);
+      transform-origin: center center; display: flex; flex-direction: column; justify-content: flex-end; user-select: none; touch-action: none;
+    }
+    .card.back { transform: scale(0.95) translateY(14px); opacity: 0.55; }
+    .card.second { transform: scale(0.97) translateY(7px); opacity: 0.8; }
+    .card.active { cursor: grab; transition: transform 0.18s ease, opacity 0.18s ease; }
+    .movie-badge { position: absolute; top: 18px; left: 18px; right: 18px; display: flex; justify-content: space-between; gap: 12px; pointer-events: none; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px;
+      background: rgba(6, 10, 24, 0.7); border: 1px solid rgba(255,255,255,0.12); color: white; font-size: 13px; font-weight: 600;
+    }
+    .signal { position: absolute; top: 28px; padding: 8px 14px; border-radius: 999px; border: 4px solid currentColor; font-size: 20px; font-weight: 800; letter-spacing: 0.08em; opacity: 0; transform: rotate(-20deg); pointer-events: none; }
+    .signal.like { right: 28px; color: var(--like); }
+    .signal.nope { left: 28px; color: var(--nope); transform: rotate(20deg); }
+    .card-content { padding: 24px; background: linear-gradient(180deg, transparent 0%, rgba(4, 8, 16, 0.55) 38%, rgba(4, 8, 16, 0.98) 100%); }
+    .movie-title { margin: 0 0 10px; font-size: clamp(28px, 4vw, 42px); line-height: 1; }
+    .movie-meta { display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); margin-bottom: 14px; font-size: 14px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tag { padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #e6e9ff; font-size: 12px; }
+    .movie-desc { margin: 0 0 16px; color: #d5daf8; font-size: 15px; line-height: 1.6; max-width: 44ch; }
+    .rating-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .rating { font-size: 16px; font-weight: 700; }
+    .small { font-size: 13px; color: var(--muted); }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .toast {
+      position: fixed; right: 18px; bottom: 18px; padding: 14px 16px; border-radius: 16px; background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border); box-shadow: var(--shadow); max-width: min(360px, calc(100vw - 36px)); transform: translateY(18px);
+      opacity: 0; pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .overlay {
+      position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 8, 16, 0.72); backdrop-filter: blur(10px);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease; padding: 24px;
+    }
+    .overlay.show { opacity: 1; pointer-events: auto; }
+    .modal { width: min(520px, 100%); padding: 24px; border-radius: 28px; background: var(--panel-strong); border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .modal h3 { margin: 0 0 10px; font-size: 28px; }
+    .modal p { color: var(--muted); line-height: 1.6; }
+    .empty { display: grid; place-items: center; min-height: 420px; text-align: center; color: var(--muted); }
+    .emoji { font-size: 58px; margin-bottom: 12px; }
+    @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } .sidebar, .stage { min-height: auto; } .card-stack { height: 460px; } }
+    @media (max-width: 560px) { .app { width: min(100% - 16px, 1200px); padding-top: 10px; } header, .sidebar, .stage, footer { border-radius: 20px; } .card-stack { height: 430px; } .controls, .actions { grid-template-columns: 1fr; } .stats { justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">🎬</div>
+        <div>
+          <h1>Movie Swipe Club</h1>
+          <div class="subtitle">Два пользователя заходят в одну комнату, свайпают фильмы и ловят совпадения.</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="label">Комната</span><span class="value" id="roomLabel">—</span></div>
+        <div class="stat"><span class="label">Пользователи</span><span class="value" id="usersLabel">0 / 2</span></div>
+        <div class="stat"><span class="label">Фильмов</span><span class="value" id="moviesLabel">500</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar panel">
+        <h2>Подключение</h2>
+        <div class="field"><label for="nameInput">Имя</label><input id="nameInput" maxlength="24" placeholder="Например, Alex" /></div>
+        <div class="field"><label for="roomInput">Код комнаты</label><input id="roomInput" maxlength="12" placeholder="Например, CINEMA" /></div>
+        <div class="actions"><button class="primary" id="joinBtn">Войти</button><button class="ghost" id="copyBtn" disabled>Скопировать код</button></div>
+        <div class="info-box" id="statusBox">Войдите в комнату, а второй человек присоединится по тому же коду.</div>
+        <div class="info-box">Правила: свайп вправо или нажмите «Нравится», свайп влево — «Пропустить». Совпадение появляется, когда оба пользователя лайкают один и тот же фильм.</div>
+        <div class="info-box" id="matchBox">Совпадения пока нет.</div>
+      </aside>
+
+      <main class="stage panel">
+        <div class="feed">
+          <div><h2 id="stageTitle">Готово к старту</h2><div class="subtitle" id="stageSubtitle">Подключите двух пользователей, чтобы начать подбор.</div></div>
+          <div class="pill" id="queuePill">Очередь: 0</div>
+        </div>
+
+        <div class="deck-area">
+          <div class="empty" id="emptyState"><div><div class="emoji">🍿</div><div>Здесь появится карточка фильма после входа в комнату.</div></div></div>
+          <div class="card-stack" id="cardStack" style="display:none;">
+            <div class="card back" id="cardBack"></div>
+            <div class="card second" id="cardSecond"></div>
+            <div class="card active" id="cardActive">
+              <div class="movie-badge"><div class="pill" id="rankPill">IMDb #—</div><div class="pill" id="votePill">0 votes</div></div>
+              <div class="signal like" id="likeSignal">LIKE</div>
+              <div class="signal nope" id="nopeSignal">NOPE</div>
+              <div class="card-content">
+                <h3 class="movie-title" id="movieTitle">—</h3>
+                <div class="movie-meta" id="movieMeta"></div>
+                <div class="tag-row" id="tagRow"></div>
+                <p class="movie-desc" id="movieDesc"></p>
+                <div class="rating-row"><div class="rating" id="movieRating">—</div><div class="small" id="movieVotes">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls"><button class="danger" id="dislikeBtn" disabled>Пропустить</button><button class="ghost" id="superBtn" disabled>Сохранить позже</button><button class="success" id="likeBtn" disabled>Нравится</button></div>
+      </main>
+    </div>
+
+    <footer class="panel" style="padding:16px 20px; color: var(--muted); font-size: 13px;">Данные фильмов загружаются из IMDb Non-Commercial Datasets и обновляются автоматически по кэшу сервера.</footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="matchOverlay"><div class="modal"><h3>Это совпадение!</h3><p id="matchText"></p><button class="primary" id="closeMatchBtn" style="width:100%;">Продолжить</button></div></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const els = {
+      roomInput: document.getElementById('roomInput'), nameInput: document.getElementById('nameInput'), joinBtn: document.getElementById('joinBtn'), copyBtn: document.getElementById('copyBtn'),
+      statusBox: document.getElementById('statusBox'), matchBox: document.getElementById('matchBox'), roomLabel: document.getElementById('roomLabel'), usersLabel: document.getElementById('usersLabel'), moviesLabel: document.getElementById('moviesLabel'),
+      stageTitle: document.getElementById('stageTitle'), stageSubtitle: document.getElementById('stageSubtitle'), queuePill: document.getElementById('queuePill'), emptyState: document.getElementById('emptyState'), cardStack: document.getElementById('cardStack'),
+      cardActive: document.getElementById('cardActive'), cardBack: document.getElementById('cardBack'), cardSecond: document.getElementById('cardSecond'), likeBtn: document.getElementById('likeBtn'), dislikeBtn: document.getElementById('dislikeBtn'), superBtn: document.getElementById('superBtn'),
+      rankPill: document.getElementById('rankPill'), votePill: document.getElementById('votePill'), movieTitle: document.getElementById('movieTitle'), movieMeta: document.getElementById('movieMeta'), tagRow: document.getElementById('tagRow'), movieDesc: document.getElementById('movieDesc'), movieRating: document.getElementById('movieRating'), movieVotes: document.getElementById('movieVotes'),
+      matchOverlay: document.getElementById('matchOverlay'), matchText: document.getElementById('matchText'), closeMatchBtn: document.getElementById('closeMatchBtn'), toast: document.getElementById('toast'), likeSignal: document.getElementById('likeSignal'), nopeSignal: document.getElementById('nopeSignal')
+    };
+    const state = { roomCode: '', name: '', movie: null, startX: 0, startY: 0, dx: 0, dy: 0, dragging: false };
+    function showToast(message) { els.toast.textContent = message; els.toast.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => els.toast.classList.remove('show'), 2200); }
+    function movieSubtitle(movie) { const parts = []; if (movie.year) parts.push(movie.year); if (movie.runtime) parts.push(`${movie.runtime} min`); if (movie.genres?.length) parts.push(movie.genres.slice(0, 3).join(' • ')); return parts.join(' • '); }
+    function updateButtons(enabled) { els.likeBtn.disabled = !enabled; els.dislikeBtn.disabled = !enabled; els.superBtn.disabled = !enabled; }
+    function renderMovie(movie) {
+      state.movie = movie;
+      if (!movie) { els.emptyState.style.display = 'grid'; els.cardStack.style.display = 'none'; return; }
+      els.emptyState.style.display = 'none'; els.cardStack.style.display = 'block';
+      els.rankPill.textContent = `IMDb #${movie.rank}`; els.votePill.textContent = `${movie.numVotes.toLocaleString('ru-RU')} votes`;
+      els.movieTitle.textContent = movie.title;
+      els.movieMeta.innerHTML = '';
+      const meta = [movie.year ? `Год: ${movie.year}` : null, movie.runtime ? `Хронометраж: ${movie.runtime} мин` : null, movie.originalTitle && movie.originalTitle !== movie.title ? `Original: ${movie.originalTitle}` : null].filter(Boolean);
+      for (const item of meta) { const span = document.createElement('span'); span.className = 'pill'; span.textContent = item; els.movieMeta.appendChild(span); }
+      els.tagRow.innerHTML = ''; const tags = (movie.genres || []).slice(0, 4); tags.push(`Score ${movie.averageRating.toFixed(1)}`); tags.push(`#${movie.rank}`);
+      for (const tag of tags) { const el = document.createElement('span'); el.className = 'tag'; el.textContent = tag; els.tagRow.appendChild(el); }
+      els.movieDesc.textContent = ['Свайпните, если это похоже на ваш вечерний выбор.', movie.genres?.length ? `Жанры: ${movie.genres.join(', ')}.` : 'Жанры не указаны.', `IMDb рейтинг: ${movie.averageRating.toFixed(1)} из 10 на основе ${movie.numVotes.toLocaleString('ru-RU')} голосов.`].join(' ');
+      els.movieRating.textContent = `⭐ ${movie.averageRating.toFixed(1)}`; els.movieVotes.textContent = `${movie.numVotes.toLocaleString('ru-RU')} голосов`;
+      els.cardActive.style.transform = 'translateX(0px) translateY(0px) rotate(0deg)'; els.cardActive.style.opacity = '1'; els.likeSignal.style.opacity = '0'; els.nopeSignal.style.opacity = '0';
+      const nextBack = movie.rank < 500 ? movie.rank + 1 : '—'; const nextSecond = movie.rank < 499 ? movie.rank + 2 : '—';
+      els.cardBack.innerHTML = `<div class="card-content"><div class="pill">Следующий: #${nextBack}</div></div>`;
+      els.cardSecond.innerHTML = `<div class="card-content"><div class="pill">Следующий +1: #${nextSecond}</div></div>`;
+      els.stageTitle.textContent = `Свайп: ${movie.title}`; els.stageSubtitle.textContent = movieSubtitle(movie); els.queuePill.textContent = `Очередь: ${movie.rank}/500`; updateButtons(true);
+    }
+    function submitVote(vote) { if (!state.movie) return; socket.emit('movie:vote', { movieId: state.movie.id, vote }); animateOut(vote); }
+    function animateOut(vote) {
+      const dir = vote === 'like' ? 1 : -1; els.cardActive.style.transition = 'transform 0.24s ease, opacity 0.24s ease'; els.cardActive.style.transform = `translateX(${dir * 520}px) rotate(${dir * 18}deg)`; els.cardActive.style.opacity = '0';
+      if (vote === 'like') { els.likeSignal.style.opacity = '1'; els.nopeSignal.style.opacity = '0'; } else { els.likeSignal.style.opacity = '0'; els.nopeSignal.style.opacity = '1'; }
+      updateButtons(false);
+    }
+    function resetDrag() { state.dragging = false; els.cardActive.style.transition = 'transform 0.18s ease, opacity 0.18s ease'; els.cardActive.style.transform = 'translateX(0px) translateY(0px) rotate(0deg)'; els.likeSignal.style.opacity = '0'; els.nopeSignal.style.opacity = '0'; }
+    function attachDrag() {
+      const card = els.cardActive;
+      const onDown = (e) => { if (!state.movie) return; state.dragging = true; state.startX = e.clientX; state.startY = e.clientY; state.dx = 0; state.dy = 0; card.setPointerCapture?.(e.pointerId); card.style.transition = 'none'; };
+      const onMove = (e) => { if (!state.dragging) return; state.dx = e.clientX - state.startX; state.dy = e.clientY - state.startY; const rotate = Math.max(-18, Math.min(18, state.dx / 18)); card.style.transform = `translate(${state.dx}px, ${state.dy * 0.55}px) rotate(${rotate}deg)`; els.likeSignal.style.opacity = Math.max(0, Math.min(1, state.dx / 120)); els.nopeSignal.style.opacity = Math.max(0, Math.min(1, -state.dx / 120)); };
+      const onUp = () => { if (!state.dragging) return; const threshold = 120; if (state.dx > threshold) submitVote('like'); else if (state.dx < -threshold) submitVote('dislike'); else resetDrag(); };
+      card.addEventListener('pointerdown', onDown); window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+    }
+    attachDrag();
+    els.joinBtn.addEventListener('click', () => { const roomCode = (els.roomInput.value || 'DEMO').trim().toUpperCase(); const name = (els.nameInput.value || `User-${Math.floor(Math.random() * 900 + 100)}`).trim(); if (!roomCode) return showToast('Введите код комнаты'); state.roomCode = roomCode; state.name = name; socket.emit('room:join', { roomCode, name }); els.copyBtn.disabled = false; localStorage.setItem('movieSwipeRoom', roomCode); localStorage.setItem('movieSwipeName', name); });
+    els.copyBtn.addEventListener('click', async () => { if (!state.roomCode) return; try { await navigator.clipboard.writeText(state.roomCode); showToast('Код комнаты скопирован'); } catch { showToast(`Код комнаты: ${state.roomCode}`); } });
+    els.likeBtn.addEventListener('click', () => submitVote('like')); els.dislikeBtn.addEventListener('click', () => submitVote('dislike')); els.superBtn.addEventListener('click', () => { if (state.movie) showToast(`Сохранено на потом: ${state.movie.title}`); }); els.closeMatchBtn.addEventListener('click', () => els.matchOverlay.classList.remove('show'));
+    socket.on('room:joined', ({ roomCode, name, movie, totalMovies, userCount }) => { state.roomCode = roomCode; state.name = name; els.roomLabel.textContent = roomCode; els.usersLabel.textContent = `${userCount} / 2`; els.moviesLabel.textContent = totalMovies; els.statusBox.textContent = `Вы в комнате ${roomCode} как ${name}. Ждём второго пользователя.`; renderMovie(movie); showToast(`Комната ${roomCode} готова`); });
+    socket.on('room:update', (payload) => { els.roomLabel.textContent = payload.code || '—'; els.usersLabel.textContent = `${payload.userCount} / 2`; els.moviesLabel.textContent = payload.totalMovies || 500; els.statusBox.textContent = payload.userCount >= 2 ? `В комнате ${payload.code} уже ${payload.userCount} пользователя. Можно ловить совпадения.` : `В комнате ${payload.code} сейчас ${payload.userCount} пользователь. Пригласите второго по коду.`; });
+    socket.on('movie:next', ({ movie, finished }) => { if (finished) { renderMovie(null); els.stageTitle.textContent = 'Список закончился'; els.stageSubtitle.textContent = 'Все 500 фильмов просмотрены. Создайте новую комнату или начните заново.'; updateButtons(false); showToast('Вы посмотрели весь список'); return; } renderMovie(movie); });
+    socket.on('room:announcement', ({ message }) => { if (message) showToast(message); });
+    socket.on('vote:update', ({ movieId, likes }) => { if (state.movie && state.movie.id === movieId && likes.length) els.matchBox.textContent = `${likes.length} человек(а) лайкнули этот фильм.`; });
+    socket.on('match', ({ movie, by }) => { els.matchText.textContent = `${by} и второй пользователь понравился фильм «${movie.title}». Это отличный кандидат на вечер.`; els.matchOverlay.classList.add('show'); els.matchBox.textContent = `Совпадение: ${movie.title}`; showToast(`Match: ${movie.title}`); });
+    socket.on('deck:finished', () => { els.stageTitle.textContent = 'Готово'; els.stageSubtitle.textContent = 'Комната дошла до конца списка.'; updateButtons(false); });
+    const savedRoom = localStorage.getItem('movieSwipeRoom'); const savedName = localStorage.getItem('movieSwipeName'); if (savedRoom) els.roomInput.value = savedRoom; if (savedName) els.nameInput.value = savedName; els.roomInput.value = els.roomInput.value || 'DEMO';
+  </script>
+</body>
+</html>

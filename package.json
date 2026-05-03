@@ -1,0 +1,13 @@
+{
+  "name": "movie-swipe-club",
+  "version": "1.0.0",
+  "description": "Two-user Tinder-like movie swiping app with IMDb top 500 dataset",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.8.1"
+  }
+}
